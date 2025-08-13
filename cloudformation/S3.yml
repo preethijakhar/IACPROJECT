@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: private S3 buckets with versioning enabled and encryption
+
+Resources:
+
+  PrivateBucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: preethi-bucket-1-8942071
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Purpose
+          Value: CollegeAssignment
+
+  PrivateBucket2:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: preethi-bucket-2-8942071
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Owner
+          Value: Preethi
+
+  PrivateBucket3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: preethi-bucket-3-8942071
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: SecureStorage
+
+Outputs:
+  Bucket1Name:
+    Description: Name of first S3 bucket
+    Value: !Ref PrivateBucket1
+  Bucket2Name:
+    Description: Name of second S3 bucket
+    Value: !Ref PrivateBucket2
+  Bucket3Name:
+    Description: Name of third S3 bucket
+    Value: !Ref PrivateBucket3

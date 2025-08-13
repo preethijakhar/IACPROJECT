@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create a VPC, subnets, security groups, and an RDS MySQL instance.
+
+Parameters:
+  DatabaseName:
+    Type: String
+    Default: mydatabase
+    Description: Name of the MySQL database
+
+  MasterUsername:
+    Type: String
+    Default: Preethi
+    Description: Master DB username
+
+  MasterPassword:
+    Type: String
+    NoEcho: true
+    Default: "Preethi123!"
+    Description: Master DB password 
+
+  InstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS instance type
+
+Resources:
+  VPCResource:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: assignment-vpc
+
+  InternetGatewayResource:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: assignment-igw
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCResource
+      InternetGatewayId: !Ref InternetGatewayResource
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCResource
+      CidrBlock: 10.1.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: private-subnet-1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCResource
+      CidrBlock: 10.1.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: private-subnet-2
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCResource
+      Tags:
+        - Key: Name
+          Value: assignment-public-route-table
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGatewayResource
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref RouteTable
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow MySQL traffic from anywhere
+      VpcId: !Ref VPCResource
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: rds-sg
+
+  CustomDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Dedicated DB subnet group
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: db-subnet-group
+
+  MySQLRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref DatabaseName
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterPassword
+      Engine: mysql
+      AllocatedStorage: 20
+      DBInstanceClass: !Ref InstanceClass
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref CustomDBSubnetGroup
+      BackupRetentionPeriod: 1
+      Tags:
+        - Key: Name
+          Value: my-mysql-db
+    DependsOn:
+      - AttachInternetGateway
+
+Outputs:
+  RDSEndpoint:
+    Description: Public endpoint of the RDS instance
+    Value: !GetAtt MySQLRDSInstance.Endpoint.Address
+
+  RDSPort:
+    Description: Port for MySQL connection
+    Value: !GetAtt MySQLRDSInstance.Endpoint.Port
